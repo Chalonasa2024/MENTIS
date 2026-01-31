@@ -11,6 +11,17 @@ AGENT_ID = int(os.getenv("AGENT_ID", "97209"))
 
 client = Client(API_KEY)
 
+CORS(
+    app,
+    resources={
+        r"/api/*": {
+            "origins": [
+                "https://mentis-ai.vercel.app",   # 👈 your React domain
+                "http://localhost:5173"           # 👈 local dev (Vite)
+            ]
+        }
+    }
+)
 
 @app.route("/")
 def home():
