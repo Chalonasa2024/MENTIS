@@ -1,24 +1,49 @@
+import os
+from flask import Flask, request, jsonify
 from omnidimension import Client
 
-client = Client("FNekZvViW5gup_NHPpFaHZvVhSVXhzTGxqmzqmMQINw")
+API_KEY = os.getenv("OMNIDIM_API_KEY")
+AGENT_ID = int(os.getenv("AGENT_ID", "97209"))
 
-to_number = input(
-    "Enter phone number with country code (e.g. +919876543210): "
-).strip()
+client = Client(API_KEY)
 
-if not to_number.startswith("+"):
-    print("❌ Invalid phone number format")
-    exit()
+app = Flask(__name__)
 
-AGENT_ID = 97209  # must be valid for this API key
+@app.route("/")
+def home():
+    return {"status": "running"}
 
-try:
+@app.route("/call", methods=["POST"])
+def call_api():
+    data = request.get_json(silent=True)
+    to_number = data.get("phone_number", "").strip()
+
+    if not to_number.startswith("+"):
+        return {"error": "Invalid phone number"}, 400
+
     response = client.call.dispatch_call(
         AGENT_ID,
-        to_number=to_number   # ✅ correct keyword
+        to_number=to_number
     )
-    print("✅ Call dispatched successfully")
-    print(response)
 
-except Exception as e:
-    print("❌ Call failed:", e)
+    return {"success": True, "response": response}
+
+@app.route("/call-ui", methods=["GET", "POST"])
+def call_ui():
+    if request.method == "POST":
+        to_number = request.form.get("phone_number", "")
+        response = client.call.dispatch_call(
+            AGENT_ID,
+            to_number=to_number
+        )
+        return f"<pre>{response}</pre><a href='/call-ui'>Back</a>"
+
+    return """
+    <form method="post">
+      <input name="phone_number" placeholder="+919876543210" required>
+      <button>Call</button>
+    </form>
+    """
+
+if __name__ == "__main__":
+    app.run()
